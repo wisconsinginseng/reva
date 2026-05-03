@@ -1,0 +1,31 @@
+name: Build Reva for LS220D
+
+on: [push, workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22' # v3.8.0に適したバージョン
+
+      - name: Build Reva Binary (Pure Go Mode)
+        run: |
+          # CGOをオフにして「純粋な刀」を作る
+          export CGO_ENABLED=0
+          export GOOS=linux
+          export GOARCH=arm
+          export GOARM=7
+          
+          # メインバイナリをビルド
+          go build -o reva-v3.8.0-armv7 ./cmd/reva
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: reva-bin-ls220d
+          path: reva-v3.8.0-armv7
