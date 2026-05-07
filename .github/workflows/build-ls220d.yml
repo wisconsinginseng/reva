@@ -13,19 +13,24 @@ jobs:
         with:
           go-version: '1.22' # v3.8.0に適したバージョン
 
-      - name: Build Reva Binary (Pure Go Mode)
+      - name: Build Reva Binaries (Server & Client)
         run: |
-          # CGOをオフにして「純粋な刀」を作る
           export CGO_ENABLED=0
           export GOOS=linux
           export GOARCH=arm
           export GOARM=7
           
-          # メインバイナリをビルド
+          # 1. クライアントをビルド（既成品）
           go build -o reva-v3.8.0-armv7 ./cmd/reva
+          
+          # 2. サーバー（本丸）をビルド！
+          # ※ ここが今回の「リベンジ」の核心です
+          go build -o revad-v3.8.0-armv7 ./cmd/revad
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: reva-bin-ls220d
-          path: reva-v3.8.0-armv7
+          name: reva-full-pack-ls220d
+          path: |
+            reva-v3.8.0-armv7
+            revad-v3.8.0-armv7
