@@ -13,24 +13,30 @@ jobs:
         with:
           go-version: '1.22' # v3.8.0に適したバージョン
 
-      - name: Build Reva Binaries (Server & Client)
+      - name: Build Reva Binaries via Makefile
         run: |
+          # 32bit ARM用のクロスコンパイル設定
           export CGO_ENABLED=0
           export GOOS=linux
           export GOARCH=arm
           export GOARM=7
           
-          # 1. クライアントをビルド（既成品）
-          go build -o reva-v3.8.0-armv7 ./cmd/reva
+          # READMEの教え：サーバー(revad)をビルド
+          # Makefileが内部で go build を呼ぶ際、上記の環境変数が引き継がれます
+          make revad
           
-          # 2. サーバー（本丸）をビルド！
-          # ※ ここが今回の「リベンジ」の核心です
-          go build -o revad-v3.8.0-armv7 ./cmd/revad
+          # READMEの教え：クライアント(reva)も同様に
+          make reva
+          
+          # ビルドされた成果物を Artifact 用の場所にコピー
+          # Makefileの仕様上、cmd/revad/revad に生成されるはずです
+          cp cmd/revad/revad ./revad-v3.8.0-armv7
+          cp cmd/reva/reva ./reva-v3.8.0-armv7
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: reva-full-pack-ls220d
           path: |
-            reva-v3.8.0-armv7
             revad-v3.8.0-armv7
+            reva-v3.8.0-armv7
