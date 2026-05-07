@@ -40,4 +40,4 @@ jobs:
           path: |
             revad-v3.8.0-armv7
             reva-v3.8.0-armv7
-            examples/  # ← これを追加！ フォルダごと全部送ります
+            examples/**  # ← これを追加！ フォルダごと全部送ります
