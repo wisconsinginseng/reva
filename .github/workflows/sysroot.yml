@@ -43,8 +43,8 @@ jobs:
         CGO_CFLAGS: "--sysroot=/tmp/sysroot"
         CGO_LDFLAGS: "--sysroot=/tmp/sysroot"
       run: |
-        # 💡 正確なビルドコマンドに変え、CGOが実機sysrootを吸い上げるようにします！
-        make -C opencloud build
+        # 💡 -C opencloud は不要でした！この場所でダイレクトに職人を走らせます！
+        make build
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
