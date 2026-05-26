@@ -1,0 +1,55 @@
+name: Build Reva with Live LS220D Sysroot
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.21' # Reva v3.8.0が安定してCGOビルドできるバージョン
+
+    - name: Install ARMv7 Cross-Compiler
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf
+
+    # 💡 ここが監督が作ってくれた外付け倉庫からの「密輸」ステップです！
+    - name: Download and Extract LS220D Sysroot
+      run: |
+        mkdir -p /tmp/sysroot
+        # 監督のReleaseページから特製型枠を一撃でダウンロード
+        curl -L https://github.com/wisconsinginseng/reva/releases/download/sysroot/ls220d-sysroot.tar.gz -o /tmp/ls220d-sysroot.tar.gz
+        # Actionsの環境内に解凍して展開します
+        tar -xzf /tmp/ls220d-sysroot.tar.gz -C /tmp/sysroot
+
+    - name: Build Reva with CGO and Real Sysroot
+      env:
+        GOOS: linux
+        GOARCH: arm
+        GOARM: 7
+        CGO_ENABLED: 1
+        CC: arm-linux-gnueabihf-gcc
+        CXX: arm-linux-gnueabihf-g++
+        # 💡 ここが最大の職人技！Cコンパイラに「解凍した実機のライブラリ群を見ろ！」と強制指定します
+        CGO_CFLAGS: "--sysroot=/tmp/sysroot"
+        CGO_LDFLAGS: "--sysroot=/tmp/sysroot"
+      run: |
+        # 現場の型枠（sysroot）とがっちり噛み合わされながら、SQLite3回路がビルドされます！
+        make -C opencloud build
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: reva-cgo-armv7-perfect
+        path: |
+          **/revad
+          **/reva
