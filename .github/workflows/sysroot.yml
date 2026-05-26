@@ -15,21 +15,22 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.21' # Reva v3.8.0が安定してCGOビルドできるバージョン
+        go-version: '1.21'
 
     - name: Install ARMv7 Cross-Compiler
       run: |
         sudo apt-get update
         sudo apt-get install -y gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf
 
-    # 💡 ここが監督が作ってくれた外付け倉庫からの「密輸」ステップです！
     - name: Download and Extract LS220D Sysroot
       run: |
+        # 💡 解凍先をシンプルに「/tmp/sysroot」にします
         mkdir -p /tmp/sysroot
-        # 監督のReleaseページから特製型枠を一撃でダウンロード
         curl -L https://github.com/wisconsinginseng/reva/releases/download/sysroot/ls220d-sysroot.tar.gz -o /tmp/ls220d-sysroot.tar.gz
-        # Actionsの環境内に解凍して展開します
-        tar -xzf /tmp/ls220d-sysroot.tar.gz -C /tmp/sysroot
+        
+        # 💡 「--strip-components」を使って、tarの中に含まれる余計な親フォルダ階層を無視し、
+        # /tmp/sysroot の直下に直接 「lib」や「usr」が来るように綺麗に展開します！
+        tar -xzf /tmp/ls220d-sysroot.tar.gz -C /tmp/sysroot --strip-components=3 || tar -xzf /tmp/ls220d-sysroot.tar.gz -C /tmp/sysroot
 
     - name: Build Reva with CGO and Real Sysroot
       env:
@@ -39,11 +40,10 @@ jobs:
         CGO_ENABLED: 1
         CC: arm-linux-gnueabihf-gcc
         CXX: arm-linux-gnueabihf-g++
-        # 💡 ここが最大の職人技！Cコンパイラに「解凍した実機のライブラリ群を見ろ！」と強制指定します
         CGO_CFLAGS: "--sysroot=/tmp/sysroot"
         CGO_LDFLAGS: "--sysroot=/tmp/sysroot"
       run: |
-        # 現場の型枠（sysroot）とがっちり噛み合わされながら、SQLite3回路がビルドされます！
+        # 💡 正確なビルドコマンドに変え、CGOが実機sysrootを吸い上げるようにします！
         make -C opencloud build
 
     - name: Upload Artifact
