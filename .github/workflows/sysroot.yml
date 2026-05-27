@@ -43,13 +43,13 @@ jobs:
         CGO_CFLAGS: "--sysroot=/tmp/sysroot"
         CGO_LDFLAGS: "--sysroot=/tmp/sysroot"
       run: |
-        # 💡 監督が見つけてくださった、公式大正解のビルドコマンドです！
-        make revad
+        # 💡 Makefileは完全スルー！
+        # Goコンパイラに直接「実機ライブラリを吸って、SQLite3回路を強制溶接しろ」と命じます！
+        go build -v -tags "sqlite sqlite_omit_load_extension" -o cmd/revad/revad ./cmd/revad/main
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: reva-cgo-armv7-perfect
+        name: reva-CGO-PERFECT-pack-ls220d # 💡 混ざらないように名前も完全版に変えます！
         path: |
-          **/revad
-          **/reva
+          cmd/revad/revad
