@@ -20,7 +20,8 @@ jobs:
 
     - name: Download and Extract Sysroot
       run: |
-        curl -L -o /tmp/ls220d-sysroot.tar.gz https://github.com/wisconsinginseng/reva/releases/download/v3.8.0-armv7/ls220d-sysroot.tar.gz
+        # 💡 タグ名を「sysroot」に修正！これで本物の実機型枠（数GB級の圧縮）をガツンと吸い込みます！
+        curl -L -o /tmp/ls220d-sysroot.tar.gz https://github.com/wisconsinginseng/reva/releases/download/sysroot/ls220d-sysroot.tar.gz
         mkdir -p /tmp/sysroot
         tar -xzf /tmp/ls220d-sysroot.tar.gz -C /tmp/sysroot
 
