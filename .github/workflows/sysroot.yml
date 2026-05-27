@@ -1,13 +1,14 @@
-name: Build Reva with Live LS220D Sysroot
+name: Build Reva with Real Sysroot
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ master, main ]
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -15,22 +16,19 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.21'
+        go-version: '1.22'
 
-    - name: Install ARMv7 Cross-Compiler
+    - name: Download and Extract Sysroot
+      run: |
+        # 実機の型枠（sysroot）をクラウドにダウンロードして展開
+        curl -L -o /tmp/ls220d-sysroot.tar.gz https://github.com/wisconsinginseng/reva/releases/download/v3.8.0-armv7/ls220d-sysroot.tar.gz
+        mkdir -p /tmp/sysroot
+        tar -xzf /tmp/ls220d-sysroot.tar.gz -C /tmp/sysroot
+
+    - name: Install ARM Cross Compiler
       run: |
         sudo apt-get update
         sudo apt-get install -y gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf
-
-    - name: Download and Extract LS220D Sysroot
-      run: |
-        # 💡 解凍先をシンプルに「/tmp/sysroot」にします
-        mkdir -p /tmp/sysroot
-        curl -L https://github.com/wisconsinginseng/reva/releases/download/sysroot/ls220d-sysroot.tar.gz -o /tmp/ls220d-sysroot.tar.gz
-        
-        # 💡 「--strip-components」を使って、tarの中に含まれる余計な親フォルダ階層を無視し、
-        # /tmp/sysroot の直下に直接 「lib」や「usr」が来るように綺麗に展開します！
-        tar -xzf /tmp/ls220d-sysroot.tar.gz -C /tmp/sysroot --strip-components=3 || tar -xzf /tmp/ls220d-sysroot.tar.gz -C /tmp/sysroot
 
     - name: Build Reva with CGO and Real Sysroot
       env:
@@ -42,15 +40,17 @@ jobs:
         CXX: arm-linux-gnueabihf-g++
         CGO_CFLAGS: "--sysroot=/tmp/sysroot"
         CGO_LDFLAGS: "--sysroot=/tmp/sysroot"
-     run: |
-        # 💡 【本命：revad】 -tags を絶対に忘れない！これがSQLite3回路を強制溶接するコアです！
+      run: |
+        # 💡 【本命：revad】 -tags を仕込んでSQLite3のC言語回路を強制溶接！
         go build -v -tags "sqlite sqlite_omit_load_extension" -ldflags "-X github.com/cs3org/reva/v3/cmd/revad.gitCommit=`git rev-parse --short HEAD` -X github.com/cs3org/reva/v3/cmd/revad.version=`git describe --always` -X github.com/cs3org/reva/v3/cmd/revad.goVersion=`go version | awk '{print $3}'` -X github.com/cs3org/reva/v3/cmd/revad.buildDate=`date +%FT%T%z`" -o ./cmd/revad/revad ./cmd/revad/main
 
-        # 💡 【対抗：reva】 CLIツール（こちらはPure Goのスタティックで完璧です）
+        # 💡 【対抗：reva】 コマンドラインツール（Pure Go）
         go build -v -ldflags "-extldflags=-static -X github.com/cs3org/reva/v3/cmd/revad.gitCommit=`git rev-parse --short HEAD` -X github.com/cs3org/reva/v3/cmd/revad.version=`git describe --always` -X github.com/cs3org/reva/v3/cmd/revad.goVersion=`go version | awk '{print $3}'` -X github.com/cs3org/reva/v3/cmd/revad.buildDate=`date +%FT%T%z`" -o ./cmd/reva/reva ./cmd/reva
+
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: reva-CGO-PERFECT-pack-ls220d # 💡 混ざらないように名前も完全版に変えます！
+        name: reva-CGO-PERFECT-pack-ls220d
         path: |
           cmd/revad/revad
+          cmd/reva/reva
