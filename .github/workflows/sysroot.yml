@@ -20,7 +20,6 @@ jobs:
 
     - name: Download and Extract Sysroot
       run: |
-        # 実機の型枠（sysroot）をクラウドにダウンロードして展開
         curl -L -o /tmp/ls220d-sysroot.tar.gz https://github.com/wisconsinginseng/reva/releases/download/v3.8.0-armv7/ls220d-sysroot.tar.gz
         mkdir -p /tmp/sysroot
         tar -xzf /tmp/ls220d-sysroot.tar.gz -C /tmp/sysroot
@@ -30,7 +29,7 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf
 
-    - name: Build Reva with CGO and Real Sysroot
+    - name: Forced Cross Compilation with CGO
       env:
         GOOS: linux
         GOARCH: arm
@@ -41,11 +40,11 @@ jobs:
         CGO_CFLAGS: "--sysroot=/tmp/sysroot"
         CGO_LDFLAGS: "--sysroot=/tmp/sysroot"
       run: |
-        # 💡 【本命：revad】 -tags を仕込んでSQLite3のC言語回路を強制溶接！
-        go build -v -tags "sqlite sqlite_omit_load_extension" -ldflags "-X github.com/cs3org/reva/v3/cmd/revad.gitCommit=`git rev-parse --short HEAD` -X github.com/cs3org/reva/v3/cmd/revad.version=`git describe --always` -X github.com/cs3org/reva/v3/cmd/revad.goVersion=`go version | awk '{print $3}'` -X github.com/cs3org/reva/v3/cmd/revad.buildDate=`date +%FT%T%z`" -o ./cmd/revad/revad ./cmd/revad/main
+        # 💡 【本命：revad】 「-a」でキャッシュを全破壊し、「-tags」でSQLite3回路を強制溶接！
+        go build -v -a -tags "sqlite sqlite_omit_load_extension" -ldflags "-X github.com/cs3org/reva/v3/cmd/revad.gitCommit=`git rev-parse --short HEAD` -X github.com/cs3org/reva/v3/cmd/revad.version=`git describe --always` -X github.com/cs3org/reva/v3/cmd/revad.goVersion=`go version | awk '{print $3}'` -X github.com/cs3org/reva/v3/cmd/revad.buildDate=`date +%FT%T%z`" -o ./cmd/revad/revad ./cmd/revad/main
 
-        # 💡 【対抗：reva】 コマンドラインツール（Pure Go）
-        go build -v -ldflags "-extldflags=-static -X github.com/cs3org/reva/v3/cmd/revad.gitCommit=`git rev-parse --short HEAD` -X github.com/cs3org/reva/v3/cmd/revad.version=`git describe --always` -X github.com/cs3org/reva/v3/cmd/revad.goVersion=`go version | awk '{print $3}'` -X github.com/cs3org/reva/v3/cmd/revad.buildDate=`date +%FT%T%z`" -o ./cmd/reva/reva ./cmd/reva
+        # 💡 【対抗：reva】 CLIツール（Pure Go）
+        go build -v -a -ldflags "-extldflags=-static -X github.com/cs3org/reva/v3/cmd/revad.gitCommit=`git rev-parse --short HEAD` -X github.com/cs3org/reva/v3/cmd/revad.version=`git describe --always` -X github.com/cs3org/reva/v3/cmd/revad.goVersion=`go version | awk '{print $3}'` -X github.com/cs3org/reva/v3/cmd/revad.buildDate=`date +%FT%T%z`" -o ./cmd/reva/reva ./cmd/reva
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
